@@ -203,3 +203,47 @@ For image 5, it predicts that the sign board is priority road with probability 0
 
 In summary, this model can't give good predictions for any image I found from the web, even though these images might be obvious to human being. It highly depends on the way how images/pictures are generated, cropped, rotated, translated, blurred, nosie information. So images has to be processed first, such as removal of noise and skewness, then it can give better predictions.
 
+There are many more advanced model which are trained with much better macines available, so a better idea would use the existing trained model and only slight change the last few layers if the type of training are similar. Here, a good idea is to use AlexNet since the number of parameters in the model is still accpetable.
+
+The last layer of alex-net is connected to more than 1000 classes, but here, we only have 43 classes, thus we can redefine the last fully connected layer with 43 classes. So we only need to train the last layer while keeping the rest of the layers unchanged. The alex-net archeture is defined in the ```alexnet.py``` file and the training images/parameters are loaded from the saved [files](https://drive.google.com/drive/u/0/folders/0B4ORAVKduZjINDlMLTFOc2ZFQWM).
+
+```python
+nb_classes = 43
+epochs = 10
+batch_size = 128
+
+with open('./train.p', 'rb') as f:
+    data = pickle.load(f)
+
+X_train, X_val, y_train, y_val = train_test_split(data['features'], data['labels'], test_size=0.33, random_state=0)
+
+features = tf.placeholder(tf.float32, (None, 32, 32, 3))
+labels = tf.placeholder(tf.int64, None)
+resized = tf.image.resize_images(features, (227, 227))
+
+# Returns the second final layer of the AlexNet model,
+# this allows us to redo the last layer for the traffic signs
+# model.
+fc7 = AlexNet(resized, feature_extract=True)
+fc7 = tf.stop_gradient(fc7)
+shape = (fc7.get_shape().as_list()[-1], nb_classes)
+fc8W = tf.Variable(tf.truncated_normal(shape, stddev=1e-2))
+fc8b = tf.Variable(tf.zeros(nb_classes))
+logits = tf.nn.xw_plus_b(fc7, fc8W, fc8b)
+``` 
+
+The above models are trained in the python file ```Traffic_Sign_Classifier_Alex.ipynb```. The training results is listed below:
+
+```
+Epoch 9
+Time: 95.445 seconds
+Validation Loss = 0.148924623241
+Validation Accuracy = 0.960989201995
+
+Epoch 10
+Time: 95.428 seconds
+Validation Loss = 0.134092179157
+Validation Accuracy = 0.964994775402
+```
+The above traning gives good prediction validation accuracy with only 10 epoches.
+
